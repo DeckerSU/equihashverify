@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZencashOfficial/equihashverify"
+    "url": "https://github.com/DeckerSU/equihashverify"
   },
   "keywords": [
     "zencash"
@@ -18,23 +18,24 @@
   "contributors": [
     "Alberto Garoffolo",
     "cronic",
-    "LitecoinZ"
+    "LitecoinZ",
+    "DeckerSU"
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ZencashOfficial/equihashverify/issues"
+    "url": "https://github.com/DeckerSU/equihashverify/issues"
   },
-  "homepage": "https://github.com/ZencashOfficial/equihashverify",
+  "homepage": "https://github.com/DeckerSU/equihashverify/equihashverify",
   "dependencies": {
-    "bindings": "*",
+    "bindings": "^1.5.0",
     "libsodium": "^0.7.3",
-    "nan": "*",
-    "node-gyp": "*"
+    "nan": "^2.20.0"
   },
   "engines": {
     "node": ">=0.12"
   },
   "devDependencies": {
-    "mocha": "^5.0.4"
+    "mocha": "^10.7.3",
+    "node-gyp": "^10.2.0"
   }
 }

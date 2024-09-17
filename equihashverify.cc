@@ -5,9 +5,9 @@
 #include <stdint.h>
 #include "crypto/equihash.h"
 
-
 #include <vector>
-using namespace v8;
+
+// No need for 'using namespace v8;' when using Nan
 
 int verifyEH(const char *hdr, const std::vector<unsigned char> &soln, unsigned int n = 200, unsigned int k = 9){
   // Hash state
@@ -36,51 +36,72 @@ int verifyEH(const char *hdr, const std::vector<unsigned char> &soln, unsigned i
   return isValid;
 }
 
-void Verify(const v8::FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
-
+void Verify(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   unsigned int n = 200;
   unsigned int k = 9;
 
-  if (args.Length() < 2) {
-  isolate->ThrowException(Exception::TypeError(
-    String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    // Check the number of arguments
+    if (info.Length() < 2) {
+        Nan::ThrowTypeError("Wrong number of arguments");
   return;
   }
 
-  Local<Object> header = args[0]->ToObject();
-  Local<Object> solution = args[1]->ToObject();
+    // Convert the first two arguments to v8::Object
+    v8::Local<v8::Object> header;
+    v8::Local<v8::Object> solution;
 
-  if (args.Length() == 4) {
-    n = args[2]->Uint32Value();
-    k = args[3]->Uint32Value();
+    if (!info[0]->IsObject() || !info[1]->IsObject()) {
+        Nan::ThrowTypeError("Arguments should be buffer objects.");
+        return;
   }
 
+    header = info[0]->ToObject(Nan::GetCurrentContext()).ToLocalChecked();
+    solution = info[1]->ToObject(Nan::GetCurrentContext()).ToLocalChecked();
+
+    // If there are four arguments, parse 'n' and 'k'
+    if (info.Length() == 4) {
+        if (!info[2]->IsUint32() || !info[3]->IsUint32()) {
+            Nan::ThrowTypeError("Third and fourth arguments should be integers.");
+            return;
+        }
+
+        n = Nan::To<uint32_t>(info[2]).FromJust();
+        k = Nan::To<uint32_t>(info[3]).FromJust();
+    }
+
+    // Check if the arguments are Buffer instances
   if(!node::Buffer::HasInstance(header) || !node::Buffer::HasInstance(solution)) {
-  isolate->ThrowException(Exception::TypeError(
-    String::NewFromUtf8(isolate, "Arguments should be buffer objects.")));
+        Nan::ThrowTypeError("Arguments should be buffer objects.");
   return;
   }
 
+    // Retrieve the data from the buffers
   const char *hdr = node::Buffer::Data(header);
-  if(node::Buffer::Length(header) != 140) {
-	  //invalid hdr length
-	  args.GetReturnValue().Set(false);
+    size_t hdr_length = node::Buffer::Length(header);
+
+    if (hdr_length != 140) {
+        // Invalid header length
+        info.GetReturnValue().Set(Nan::New(false));
 	  return;
   }
+
   const char *soln = node::Buffer::Data(solution);
+    size_t soln_length = node::Buffer::Length(solution);
 
-  std::vector<unsigned char> vecSolution(soln, soln + node::Buffer::Length(solution));
+    // Create a vector from the solution buffer
+    std::vector<unsigned char> vecSolution(soln, soln + soln_length);
 
+    // Call the verification function
   bool result = verifyEH(hdr, vecSolution, n, k);
-  args.GetReturnValue().Set(result);
 
+    // Set the return value
+    info.GetReturnValue().Set(Nan::New(result));
 }
 
-
-void Init(Handle<Object> exports) {
-  NODE_SET_METHOD(exports, "verify", Verify);
+void Init(v8::Local<v8::Object> exports) {
+    Nan::Set(exports,
+        Nan::New("verify").ToLocalChecked(),
+        Nan::GetFunction(Nan::New<v8::FunctionTemplate>(Verify)).ToLocalChecked());
 }
 
 NODE_MODULE(equihashverify, Init)
